@@ -308,7 +308,7 @@ class FeedHelper
      */
     public static function convertCmToInch(?float $centimeter): ?float
     {
-        return StringHelper::normalizeFloat($centimeter / 2.54);
+        return self::convert($centimeter,  1/ 2.54);
     }
 
     /**

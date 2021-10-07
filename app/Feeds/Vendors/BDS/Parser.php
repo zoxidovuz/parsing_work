@@ -54,9 +54,9 @@ class Parser extends HtmlParser
         foreach ($this->short_description as $short_description) {
             if (str_contains($short_description, 'Dimensions')) {
                 preg_match_all('/(\d*\.)?\d+/u', 'Dimensions: 29.5 * 13.5 * 27 cm.', $match);
-                $this->dims['x'] = isset($match[0][0]) ? FeedHelper::convertCmToInch(StringHelper::getFloat($match[0][0])) : null;
-                $this->dims['y'] = isset($match[0][1]) ? FeedHelper::convertCmToInch(StringHelper::getFloat($match[0][1])) : null;
-                $this->dims['z'] = isset($match[0][2]) ? FeedHelper::convertCmToInch(StringHelper::getFloat($match[0][2])) : null;
+                $this->dims['x'] = isset($match[0][0]) ? FeedHelper::convert(StringHelper::getFloat($match[0][0]), 0.39) : null;
+                $this->dims['y'] = isset($match[0][1]) ? FeedHelper::convert(StringHelper::getFloat($match[0][1]), 0.39) : null;
+                $this->dims['z'] = isset($match[0][2]) ? FeedHelper::convert(StringHelper::getFloat($match[0][2]), 0.39) : null;
             }
         }
 

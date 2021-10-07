@@ -302,16 +302,6 @@ class FeedHelper
     }
 
     /**
-     * Convert to a given size in centimeters
-     * @param float|null $centimeter
-     * @return float|null
-     */
-    public static function convertCmToInch(?float $centimeter): ?float
-    {
-        return self::convert($centimeter,  1/ 2.54);
-    }
-
-    /**
      * Converts a number from an arbitrary unit of measurement to an arbitrary unit of measurement
      * @param float|null $value The value of the unit of measurement to be translated
      * @param float $contain_value The value of one unit of measurement relative to another

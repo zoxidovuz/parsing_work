@@ -9,72 +9,44 @@ use App\Helpers\StringHelper;
 class Parser extends HtmlParser
 {
     private array $dims = [];
-    private string $mpn = '';
-    private ?string $upc = '';
     private ?string $description;
-    private ?array $attributes;
+    private array $attributes = [];
     private array $short_description = [];
 
     public function beforeParse(): void
     {
-        $description = $this->getHtml('#tab-description');
-//        $this->description = FeedHelper::getShortsAndAttributesInDescription(
-//            $this->getHtml('#tab-description'),
-//            ['/(?<content_list><li>.*?<\/li>)/u']
-//        );
+        $tab_description = $this->getHtml('#tab-description');
+        $description = $this->getContent('#tab-description')[0] ?? '';
 
-        preg_match_all('/(?<content_list><ul>.*?<\/ul>)/u', $description, $short_description);
+        preg_match('/(?<content_list><ul>.*?<\/ul>)/s', $tab_description, $match);
+        preg_match_all('/(?<content_list><li>.*?<\/li>)/u', $match['content_list'] ?? '', $match_li);
 
-        if ($short_description["content_list"]) {
-            // Short description
-            if (isset($short_description["content_list"][0])) {
-                $description = str_replace($short_description["content_list"][0], '', $description);
-                preg_match_all('/(?<content_list><li>.*?<\/li>)/u', $short_description["content_list"][0], $short);
-                if (isset($short['content_list'])) {
-                    $this->short_description = [];
-                    foreach ($short['content_list'] as $content) {
-                        $this->short_description[] = str_replace(['<li>', '</li>'], '', $content);
-                    }
-                }
+        foreach ($match_li['content_list'] as $element) {
+            $element = str_replace(['<li>', '</li>'], '', $element);
+            if (str_contains($element, ':')) {
+                $this->attributes[] = $element;
+            } else {
+                $this->short_description[] = $element;
             }
-            // Attributes
-            if (isset($short_description["content_list"][1])) {
-                preg_match_all('/(?<content_list><li>.*?<\/li>)/u', $short_description["content_list"][1], $attrs);
-                if (isset($attrs['content_list'])) {
-                    $this->attributes = [];
-                    foreach ($attrs['content_list'] as $content) {
-                        $this->attributes[] = str_replace(['<li>', '</li>'], '', $content);
-                    }
-                }
-            }
+            $description = str_replace($element, '', $description);
         }
+
 
         $this->description = str_replace('Product Description', '', $description);
 
         foreach ($this->short_description as $short_description) {
             if (str_contains($short_description, 'Dimensions')) {
-                preg_match_all('/(\d*\.)?\d+/u', 'Dimensions: 29.5 * 13.5 * 27 cm.', $match);
+                preg_match_all('/(\d*\.)?\d+/u', $short_description, $match);
                 $this->dims['x'] = isset($match[0][0]) ? FeedHelper::convert(StringHelper::getFloat($match[0][0]), 0.39) : null;
                 $this->dims['y'] = isset($match[0][1]) ? FeedHelper::convert(StringHelper::getFloat($match[0][1]), 0.39) : null;
                 $this->dims['z'] = isset($match[0][2]) ? FeedHelper::convert(StringHelper::getFloat($match[0][2]), 0.39) : null;
             }
         }
-
-        $product_info = $this->getHtml('.productView-info');
-        preg_match('#dd class="productView-info-value" data-product-sku>(.*?)<\/dd>#s', $product_info, $sku_value);
-        preg_match('#dd class="productView-info-value" data-product-upc>(.*?)<\/dd>#s', $product_info, $upc_value);
-        if (isset($sku_value[1])) {
-            $this->mpn = $sku_value[1];
-        }
-        if (isset($upc_value[1])) {
-            $this->upc = $upc_value[1];
-        };
-
     }
 
     public function getMpn(): string
     {
-        return $this->mpn;
+        return $this->getHtml('[data-product-sku]');
     }
 
     public function getProduct(): string
@@ -110,8 +82,7 @@ class Parser extends HtmlParser
     public function getCategories(): array
     {
         $categories = $this->getContent('.breadcrumb a');
-        array_shift($categories);
-        return $categories;
+        return [$categories[1] ?? ''];
     }
 
     public function getCostToUs(): float
@@ -131,7 +102,7 @@ class Parser extends HtmlParser
 
     public function getUpc(): ?string
     {
-        return $this->upc;
+        return $this->getHtml('[data-product-upc]');
     }
 
     public function getDimX(): ?float

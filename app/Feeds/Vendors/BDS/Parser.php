@@ -16,7 +16,6 @@ class Parser extends HtmlParser
     public function beforeParse(): void
     {
         $tab_description = $this->getHtml('#tab-description');
-        $description = $this->getContent('#tab-description')[0] ?? '';
 
         preg_match('/(?<content_list><ul>.*?<\/ul>)/s', $tab_description, $match);
         preg_match_all('/(?<content_list><li>.*?<\/li>)/u', $match['content_list'] ?? '', $match_li);
@@ -24,24 +23,21 @@ class Parser extends HtmlParser
         foreach ($match_li['content_list'] as $element) {
             $element = str_replace(['<li>', '</li>'], '', $element);
             if (str_contains($element, ':')) {
-                $this->attributes[] = $element;
+                [$key, $value] = explode(':', $element);
+                $this->attributes += [$key => $value];
             } else {
                 $this->short_description[] = $element;
             }
-            $description = str_replace($element, '', $description);
-        }
-
-
-        $this->description = str_replace('Product Description', '', $description);
-
-        foreach ($this->short_description as $short_description) {
-            if (str_contains($short_description, 'Dimensions')) {
-                preg_match_all('/(\d*\.)?\d+/u', $short_description, $match);
+            if (str_contains($element, 'Dimensions')) {
+                preg_match_all('/(\d*\.)?\d+/u', $element, $match);
                 $this->dims['x'] = isset($match[0][0]) ? FeedHelper::convert(StringHelper::getFloat($match[0][0]), 0.39) : null;
                 $this->dims['y'] = isset($match[0][1]) ? FeedHelper::convert(StringHelper::getFloat($match[0][1]), 0.39) : null;
                 $this->dims['z'] = isset($match[0][2]) ? FeedHelper::convert(StringHelper::getFloat($match[0][2]), 0.39) : null;
             }
+            $tab_description = str_replace("<li>$element</li>", '', $tab_description);
         }
+
+        $this->description = FeedHelper::cleanProductDescription(str_replace('Product Description', '', $tab_description));
     }
 
     public function getMpn(): string
